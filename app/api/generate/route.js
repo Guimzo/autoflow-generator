@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 const SYSTEM_PROMPT = `Tu es un expert en automatisation no-code. L'utilisateur te décrit un workflow qu'il veut automatiser. Tu dois générer 3 fichiers JSON importables dans Make, Zapier et n8n, PLUS un plan d'action détaillé pour chaque plateforme.
 
 RÈGLES CRITIQUES :
