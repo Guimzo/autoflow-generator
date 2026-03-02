@@ -233,6 +233,38 @@ function TabContent({ platformKey, blueprint, actionPlan, workflowName }) {
   );
 }
 
+// ─── History ───
+function getHistory() {
+  if (typeof window === "undefined") return [];
+  try {
+    const h = localStorage.getItem("af_history");
+    return h ? JSON.parse(h) : [];
+  } catch { return []; }
+}
+function saveToHistory(promptText, result) {
+  try {
+    const history = getHistory();
+    history.unshift({
+      id: Date.now(),
+      prompt: promptText.slice(0, 120),
+      name: result.workflow_name || "Workflow",
+      apps: result.apps_used || [],
+      time: result.estimated_time_saved || "",
+      result,
+      date: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+    });
+    // Keep max 20
+    if (history.length > 20) history.pop();
+    localStorage.setItem("af_history", JSON.stringify(history));
+  } catch {}
+}
+function removeFromHistory(id) {
+  try {
+    const history = getHistory().filter(h => h.id !== id);
+    localStorage.setItem("af_history", JSON.stringify(history));
+  } catch {}
+}
+
 // ─── Main ───
 export default function Home() {
   const [screen, setScreen] = useState("landing");
@@ -242,9 +274,10 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [usageCount, setUsageCount] = useState(0);
   const [activeTab, setActiveTab] = useState("make");
+  const [history, setHistory] = useState([]);
   const textareaRef = useRef(null);
 
-  useEffect(() => { setUsageCount(getUsageCount()); }, []);
+  useEffect(() => { setUsageCount(getUsageCount()); setHistory(getHistory()); }, []);
   const remaining = DAILY_LIMIT - usageCount;
 
   useEffect(() => {
@@ -276,11 +309,23 @@ export default function Home() {
       clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Erreur");
+      saveToHistory(prompt.trim(), data);
+      setHistory(getHistory());
       setResult(data); setUsageCount(incrementUsage()); setScreen("results");
     } catch (err) { setError(err.name === "AbortError" ? "La génération a pris trop de temps. Réessayez avec une description plus simple." : err.message); setScreen("landing"); }
   };
 
   const handleReset = () => { setScreen("landing"); setPrompt(""); setResult(null); setError(null); };
+
+  const handleLoadHistory = (item) => {
+    setResult(item.result); setActiveTab("make"); setScreen("results");
+  };
+
+  const handleDeleteHistory = (id, e) => {
+    e.stopPropagation();
+    removeFromHistory(id);
+    setHistory(getHistory());
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: t.bg, color: t.text, position: "relative" }}>
@@ -470,6 +515,68 @@ export default function Home() {
                 ))}
               </div>
             </div>
+
+            {/* History */}
+            {history.length > 0 && (
+              <div style={{ marginTop: 48, animation: "fadeUp 0.6s ease 0.3s both" }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 600, color: t.textTertiary, textTransform: "uppercase",
+                  letterSpacing: "0.08em", marginBottom: 14, fontFamily: "'JetBrains Mono', monospace",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.primary }} />
+                  Mes générations
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {history.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleLoadHistory(item)}
+                      style={{
+                        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12,
+                        padding: "14px 18px", color: t.text, fontSize: 13, lineHeight: 1.5,
+                        cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                        fontFamily: "'Plus Jakarta Sans', sans-serif", display: "flex",
+                        alignItems: "center", gap: 14, position: "relative",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.primaryBorder; e.currentTarget.style.background = t.surfaceHover; e.currentTarget.style.boxShadow = `0 0 20px ${t.primaryGlow}`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.background = t.surface; e.currentTarget.style.boxShadow = "none"; }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10, background: t.successBg,
+                        border: `1px solid ${t.successBorder}`, display: "flex",
+                        alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0,
+                      }}>✓</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: t.white, marginBottom: 3 }}>{item.name}</div>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                          {item.apps.slice(0, 3).map((app, i) => (
+                            <span key={i} style={{
+                              padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600,
+                              background: t.primaryBg, border: `1px solid ${t.primaryBorder}`, color: t.primaryLight,
+                            }}>{app}</span>
+                          ))}
+                          {item.apps.length > 3 && <span style={{ fontSize: 10, color: t.textTertiary }}>+{item.apps.length - 3}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: t.textTertiary, fontFamily: "'JetBrains Mono', monospace" }}>{item.date}</span>
+                        <div
+                          onClick={(e) => handleDeleteHistory(item.id, e)}
+                          style={{
+                            width: 26, height: 26, borderRadius: 6, display: "flex",
+                            alignItems: "center", justifyContent: "center",
+                            cursor: "pointer", color: t.textTertiary, fontSize: 14, transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = t.error; e.currentTarget.style.background = t.errorBg; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = t.textTertiary; e.currentTarget.style.background = "transparent"; }}
+                        >×</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Footer */}
             <div style={{
