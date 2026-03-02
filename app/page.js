@@ -315,7 +315,7 @@ export default function Home() {
     } catch (err) { setError(err.name === "AbortError" ? "La génération a pris trop de temps. Réessayez avec une description plus simple." : err.message); setScreen("landing"); }
   };
 
-  const handleReset = () => { setScreen("landing"); setPrompt(""); setResult(null); setError(null); };
+  const handleReset = () => { setScreen("landing"); setPrompt(""); setResult(null); setError(null); setHistory(getHistory()); };
 
   const handleLoadHistory = (item) => {
     setResult(item.result); setActiveTab("make"); setScreen("results");
