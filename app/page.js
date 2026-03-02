@@ -266,14 +266,18 @@ export default function Home() {
     if (!prompt.trim() || remaining <= 0) return;
     setScreen("loading"); setLoadingStep(0); setError(null); setActiveTab("make");
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 55000);
       const res = await fetch("/api/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: prompt.trim() }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Erreur");
       setResult(data); setUsageCount(incrementUsage()); setScreen("results");
-    } catch (err) { setError(err.message); setScreen("landing"); }
+    } catch (err) { setError(err.name === "AbortError" ? "La génération a pris trop de temps. Réessayez avec une description plus simple." : err.message); setScreen("landing"); }
   };
 
   const handleReset = () => { setScreen("landing"); setPrompt(""); setResult(null); setError(null); };
