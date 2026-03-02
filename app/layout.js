@@ -1,10 +1,6 @@
 export const metadata = {
   title: "AutoFlow — Générateur d'automatisations IA",
   description: "Décrivez votre idée, obtenez des scénarios Make, Zapier et n8n prêts à importer avec un plan d'action complet.",
-  openGraph: {
-    title: "AutoFlow — Générateur d'automatisations IA",
-    description: "Décrivez votre idée, obtenez des scénarios Make, Zapier et n8n prêts à importer.",
-  },
 };
 
 export default function RootLayout({ children }) {
@@ -18,23 +14,23 @@ export default function RootLayout({ children }) {
         <style>{`
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            background: #07070a;
+            background: #06060a;
             color: #e8e8ed;
             font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
           }
-          ::selection { background: rgba(255,255,255,0.12); }
-          textarea::placeholder { color: #3a3a4a; }
+          ::selection { background: rgba(120,90,255,0.3); }
+          textarea::placeholder { color: #3a3a50; }
           ::-webkit-scrollbar { width: 6px; }
           ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: #1e1e2a; border-radius: 3px; }
+          ::-webkit-scrollbar-thumb { background: #1e1e2e; border-radius: 3px; }
           @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.05);opacity:0.7} }
-          @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-          @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-          @keyframes glow { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
+          @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
           @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+          @keyframes glow { 0%,100%{opacity:0.4} 50%{opacity:1} }
+          @keyframes gradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+          @keyframes borderGlow { 0%,100%{border-color:rgba(120,90,255,0.15)} 50%{border-color:rgba(120,90,255,0.35)} }
         `}</style>
       </head>
       <body>{children}</body>
