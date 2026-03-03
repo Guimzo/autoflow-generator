@@ -333,7 +333,9 @@ export default function Home() {
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error("Erreur serveur. Réessayez."); }
       if (!res.ok || data.error) throw new Error(data.error || "Erreur");
       console.log("Generation success, saving to history...");
       saveToHistory(prompt.trim(), data);
