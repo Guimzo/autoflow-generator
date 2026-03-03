@@ -14,7 +14,7 @@ function incrementUsage() {
   try {
     const k = getRateLimitKey(), n = getUsageCount() + 1;
     localStorage.setItem(k, String(n));
-    Object.keys(localStorage).forEach((x) => { if (x.startsWith("af_") && x !== k) localStorage.removeItem(x); });
+    Object.keys(localStorage).forEach((x) => { if (x.startsWith("af_") && x !== k && x !== "af_history") localStorage.removeItem(x); });
     return n;
   } catch { return 0; }
 }
@@ -243,7 +243,7 @@ function getHistory() {
 }
 function saveToHistory(promptText, result) {
   try {
-    const history = getHistory();
+    // Store only metadata, not the full blueprints
     const entry = {
       id: Date.now(),
       prompt: promptText.slice(0, 120),
@@ -251,32 +251,16 @@ function saveToHistory(promptText, result) {
       apps: result.apps_used || [],
       time: result.estimated_time_saved || "",
       date: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
-      result: result,
     };
+    const history = getHistory();
     history.unshift(entry);
     if (history.length > 10) history.pop();
-    try {
-      localStorage.setItem("af_history", JSON.stringify(history));
-    } catch (storageErr) {
-      // If too large, try without blueprints in older entries
-      history.forEach((h, i) => {
-        if (i > 0 && h.result) {
-          h.result = {
-            workflow_name: h.result.workflow_name,
-            description: h.result.description,
-            apps_used: h.result.apps_used,
-            estimated_time_saved: h.result.estimated_time_saved,
-            steps_summary: h.result.steps_summary,
-          };
-        }
-      });
-      try {
-        localStorage.setItem("af_history", JSON.stringify(history));
-      } catch {
-        // Last resort: only keep latest
-        localStorage.setItem("af_history", JSON.stringify([entry]));
-      }
-    }
+    const json = JSON.stringify(history);
+    console.log("Saving to localStorage, size:", json.length, "bytes");
+    localStorage.setItem("af_history", json);
+    // Verify it was saved
+    const verify = localStorage.getItem("af_history");
+    console.log("Verification after save:", verify ? "OK (" + verify.length + " bytes)" : "FAILED - null");
   } catch (e) { console.error("saveToHistory error:", e); }
 }
 function removeFromHistory(id) {
@@ -349,7 +333,9 @@ export default function Home() {
   const handleReset = () => { setScreen("landing"); setPrompt(""); setResult(null); setError(null); setHistory(getHistory()); };
 
   const handleLoadHistory = (item) => {
-    setResult(item.result); setActiveTab("make"); setScreen("results");
+    // Load prompt into textarea for re-generation
+    setPrompt(item.prompt);
+    setScreen("landing");
   };
 
   const handleDeleteHistory = (id, e) => {
