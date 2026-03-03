@@ -244,19 +244,40 @@ function getHistory() {
 function saveToHistory(promptText, result) {
   try {
     const history = getHistory();
-    history.unshift({
+    const entry = {
       id: Date.now(),
       prompt: promptText.slice(0, 120),
       name: result.workflow_name || "Workflow",
       apps: result.apps_used || [],
       time: result.estimated_time_saved || "",
-      result,
       date: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
-    });
-    // Keep max 20
-    if (history.length > 20) history.pop();
-    localStorage.setItem("af_history", JSON.stringify(history));
-  } catch {}
+      result: result,
+    };
+    history.unshift(entry);
+    if (history.length > 10) history.pop();
+    try {
+      localStorage.setItem("af_history", JSON.stringify(history));
+    } catch (storageErr) {
+      // If too large, try without blueprints in older entries
+      history.forEach((h, i) => {
+        if (i > 0 && h.result) {
+          h.result = {
+            workflow_name: h.result.workflow_name,
+            description: h.result.description,
+            apps_used: h.result.apps_used,
+            estimated_time_saved: h.result.estimated_time_saved,
+            steps_summary: h.result.steps_summary,
+          };
+        }
+      });
+      try {
+        localStorage.setItem("af_history", JSON.stringify(history));
+      } catch {
+        // Last resort: only keep latest
+        localStorage.setItem("af_history", JSON.stringify([entry]));
+      }
+    }
+  } catch (e) { console.error("saveToHistory error:", e); }
 }
 function removeFromHistory(id) {
   try {
@@ -275,10 +296,15 @@ export default function Home() {
   const [usageCount, setUsageCount] = useState(0);
   const [activeTab, setActiveTab] = useState("make");
   const [history, setHistory] = useState([]);
+  const [mounted, setMounted] = useState(false);
   const textareaRef = useRef(null);
 
-  useEffect(() => { setUsageCount(getUsageCount()); setHistory(getHistory()); }, []);
-  const remaining = DAILY_LIMIT - usageCount;
+  useEffect(() => {
+    setMounted(true);
+    setUsageCount(getUsageCount());
+    setHistory(getHistory());
+  }, []);
+  const remaining = mounted ? DAILY_LIMIT - usageCount : DAILY_LIMIT;
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -309,8 +335,11 @@ export default function Home() {
       clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Erreur");
+      console.log("Generation success, saving to history...");
       saveToHistory(prompt.trim(), data);
-      setHistory(getHistory());
+      const newHistory = getHistory();
+      console.log("History after save:", newHistory.length, "items");
+      setHistory(newHistory);
       setResult(data); setUsageCount(incrementUsage()); setScreen("results");
     } catch (err) { setError(err.name === "AbortError" ? "La génération a pris trop de temps. Réessayez avec une description plus simple." : err.message); setScreen("landing"); }
   };
@@ -517,7 +546,7 @@ export default function Home() {
             </div>
 
             {/* History */}
-            {history.length > 0 && (
+            {mounted && history.length > 0 && (
               <div style={{ marginTop: 48, animation: "fadeUp 0.6s ease 0.3s both" }}>
                 <div style={{
                   fontSize: 11, fontWeight: 600, color: t.textTertiary, textTransform: "uppercase",
