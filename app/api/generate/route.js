@@ -21,6 +21,24 @@ Réponds UNIQUEMENT en JSON valide. Pas de texte, pas de backticks.
 
 Vrais modules Make (google-sheets:addRow, gmail:sendEmail). Vrais nodes n8n (n8n-nodes-base.googleSheets). Plans en français, 4-6 étapes. JSON UNIQUEMENT.`;
 
+function extractJSON(text) {
+  // Remove markdown code blocks
+  let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  
+  // Try parsing directly
+  try { return JSON.parse(cleaned); } catch {}
+  
+  // Find the first { and last } to extract JSON object
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const jsonStr = cleaned.slice(firstBrace, lastBrace + 1);
+    try { return JSON.parse(jsonStr); } catch {}
+  }
+  
+  return null;
+}
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => null);
@@ -64,10 +82,8 @@ export async function POST(request) {
     const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
     if (!text) return Response.json({ error: "Réponse vide." }, { status: 500 });
 
-    const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-
-    let parsed;
-    try { parsed = JSON.parse(cleaned); } catch {
+    const parsed = extractJSON(text);
+    if (!parsed) {
       return Response.json({ error: "JSON malformé. Réessayez." }, { status: 500 });
     }
 
