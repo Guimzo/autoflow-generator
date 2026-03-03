@@ -47,66 +47,94 @@ PLANS D'ACTION (5-8 étapes par plan, en français) :
 
 JSON UNIQUEMENT.`;
 
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export async function POST(request) {
   try {
-    const { prompt } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ error: "Requête invalide." }, 400);
+    }
+
+    const prompt = body?.prompt;
     if (!prompt || typeof prompt !== "string" || prompt.trim().length < 10) {
-      return new Response(JSON.stringify({ error: "Description trop courte." }), {
-        status: 400, headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Description trop courte (min 10 caractères)." }, 400);
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Clé API non configurée." }), {
-        status: 500, headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Clé API non configurée. Vérifiez ANTHROPIC_API_KEY dans Vercel." }, 500);
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
-        max_tokens: 6000,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: "user",
-          content: "Génère les 3 blueprints (Make, Zapier, n8n) avec plans d'action pour :\n\n" + prompt.trim(),
-        }],
-      }),
-    });
+    let response;
+    try {
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 5000,
+          system: SYSTEM_PROMPT,
+          messages: [{
+            role: "user",
+            content: "Génère les 3 blueprints (Make, Zapier, n8n) avec plans d'action pour :\n\n" + prompt.trim(),
+          }],
+        }),
+      });
+    } catch (fetchErr) {
+      return jsonResponse({ error: "Impossible de contacter Claude: " + fetchErr.message }, 502);
+    }
+
+    let responseText;
+    try {
+      responseText = await response.text();
+    } catch {
+      return jsonResponse({ error: "Erreur lecture réponse API." }, 502);
+    }
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return new Response(JSON.stringify({ error: err?.error?.message || "Erreur API Claude." }), {
-        status: response.status, headers: { "Content-Type": "application/json" },
-      });
+      try {
+        const errData = JSON.parse(responseText);
+        return jsonResponse({ error: errData?.error?.message || "Erreur API (code " + response.status + ")" }, response.status);
+      } catch {
+        return jsonResponse({ error: "Erreur API (code " + response.status + "): " + responseText.slice(0, 200) }, response.status);
+      }
     }
 
-    const data = await response.json();
-    const text = data.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      return jsonResponse({ error: "Réponse API invalide." }, 502);
+    }
+
+    const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+    if (!text) {
+      return jsonResponse({ error: "Réponse IA vide." }, 500);
+    }
+
     const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
 
     let parsed;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      return new Response(JSON.stringify({ error: "Réponse IA invalide. Réessayez." }), {
-        status: 500, headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "JSON malformé. Réessayez." }, 500);
     }
 
-    return new Response(JSON.stringify(parsed), {
-      status: 200, headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse(parsed);
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Erreur serveur." }), {
-      status: 500, headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Erreur serveur: " + (err.message || "inconnue") }, 500);
   }
 }
