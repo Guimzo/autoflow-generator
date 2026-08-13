@@ -37,6 +37,16 @@ Prix cible : ~2 000 €. Angle administratif interdit.
 
 **Construire l'offre à partir des verbatims** (skill `hormozi-offers`).
 
+Bloquée en attente de :
+
+| À fournir | Où | Statut |
+|---|---|---|
+| Transcriptions des 3 appels (mot à mot) | `appels/` | à faire — 3 audios non transcrits |
+| 3 supports de Hamza | `formation/` | à déposer |
+| Fichier prospection v3 (segmentation T1/T2 par type de numéro) | `prospection/` | version à vérifier |
+
+Trame de travail prête : `appels/GRILLE-VERBATIMS.md` (à lire avant de transcrire).
+
 ---
 
 ## Journal
@@ -44,3 +54,4 @@ Prix cible : ~2 000 €. Angle administratif interdit.
 | Date | Événement |
 |---|---|
 | 2026-08-13 | Espace de travail initialisé, contexte business versionné, skills Hormozi installées |
+| 2026-08-13 | Skills versionnées dans `.claude/skills/` (persistantes), grille d'extraction des verbatims rédigée |
