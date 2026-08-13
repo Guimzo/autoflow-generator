@@ -1,7 +1,8 @@
-# NIROAD — Contexte business
+# NIROAD — Contexte business (annexe détaillée)
 
-> Fichier de contexte lu par Claude Code (importé depuis `CLAUDE.md`).
-> Les skills Hormozi lisent ce contexte et arrêtent de sortir des conseils génériques.
+> Annexe importée par `CLAUDE.md`, qui porte la version courte et fait foi en cas d'écart.
+> Ce fichier garde le détail : conversations de découverte, contraintes outils, source de la
+> liste de prospection.
 
 ---
 
@@ -14,7 +15,7 @@ Accompagnement payant en cours (formateur : Hamza).
 
 ## La niche — DÉCIDÉE, ne pas rediscuter
 
-**Cabinets de recrutement**, ciblage : 2 à 10 personnes, avec du flux.
+**Cabinets de recrutement**, ciblage : 3 à 10 personnes, avec du flux.
 Code NAF 78.10Z. Extension future possible vers l'intérim indépendant.
 
 Niches déjà testées et abandonnées (ne pas les reproposer) :
